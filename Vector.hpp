@@ -9,11 +9,6 @@
 
 #define CHECK assert(Invariant());
 
-// FRÅGOR:
-// 1: Move...
-// 2: Kolla om vecArray är nullptr vid destruktor?
-
-
 template<class T> class Vector
 {
 private:
@@ -39,26 +34,20 @@ public:
 #pragma region Assignment and Constructors
 	Vector() noexcept {}
 
-	// TODO: ONLY DESTRUCT THE AMOUNT ITEMS ADDED.
 	Vector(const char* other)
 	{
 		size_t newSize = strlen(other);
 
 		if (newSize > 0)
 			vecArray = dAlloc.allocate(newSize);
-
 		try
 		{
 			for (; currentSize < newSize; ++currentSize)
-			{
 				new (vecArray + currentSize) T(other[currentSize]);
-			}
 			maxCapacity = newSize;
 		}
 		catch (...)
-		{
 			Deallocate(vecArray, currentSize, newSize);
-		}
 	}
 
 	// Copy Constructor
@@ -66,18 +55,15 @@ public:
 	{
 		if (other.currentSize <= 0)
 			return;
-
 		vecArray = dAlloc.allocate(other.maxCapacity);
-
 		try {
 			for (; currentSize < other.currentSize; ++currentSize) {
 				new (vecArray + currentSize) T(other[currentSize]);
 			}
 			maxCapacity = other.maxCapacity;
 		}
-		catch (...) {
+		catch (...)
 			Deallocate(vecArray, currentSize, maxCapacity);
-		}
 	}
 
 
@@ -101,9 +87,8 @@ public:
 		// If other vector is bigger, reallocate and make bigger
 		if (maxCapacity < other.currentSize)
 		{
-			for (size_t i = 0; i < currentSize; ++i) {
+			for (size_t i = 0; i < currentSize; ++i)
 				vecArray[i].~T();
-			}
 			currentSize = 0;
 			dAlloc.deallocate(vecArray, maxCapacity);
 
@@ -114,27 +99,23 @@ public:
 
 		try {
 			for (; counter < other.currentSize; ++counter) {
-				if (counter < currentSize) {
+				if (counter < currentSize)
 					// Assignment on occupied slots
 					vecArray[counter] = other.vecArray[counter];
-				}
-				else {
+				else
 					// Placement new on empty slots
 					new (vecArray + counter) T(other[counter]);
-				}
 			}
 			if (counter < currentSize) {
-				for (; counter < currentSize; ++counter) {
+				for (; counter < currentSize; ++counter)
 					vecArray[counter].~T();
-				}
 			}
 			currentSize = other.currentSize;
 		}
 		catch (...) {
 			// Set size to what counter was before error.
-			if (counter > currentSize) {
+			if (counter > currentSize)
 				currentSize = counter;
-			}
 			throw;
 		}
 
@@ -173,9 +154,7 @@ public:
 	T& at(size_t i)
 	{
 		if (i >= 0 && i < currentSize)
-		{
 			return vecArray[i];
-		}
 		throw std::out_of_range(std::format
 		("Error: trying to access an index outside the bounds of the array. i = {}, Size of array: {}.", i, currentSize));
 	}
@@ -185,9 +164,7 @@ public:
 	const T& at(size_t i) const
 	{
 		if (i >= 0 && i < currentSize)
-		{
 			return vecArray[i];
-		}
 		throw std::out_of_range(std::format
 		("Error: trying to access an index outside the bounds of the array. i = {}, Size of array: {}.", i, currentSize));
 	}
@@ -221,9 +198,8 @@ public:
 #pragma region Modifying Methods
 
 	void Deallocate(T* data, size_t size, size_t capacity) {
-		for (size_t i = 0; i < size; ++i) {
+		for (size_t i = 0; i < size; ++i)
 			data[i].~T();
-		}
 		dAlloc.deallocate(data, capacity);
 		throw;
 	}
@@ -233,57 +209,42 @@ public:
 		T* tempContainer = dAlloc.allocate(newCap);
 		size_t counter = 0;
 		try {
-			for (; counter < currentSize; ++counter) {
+			for (; counter < currentSize; ++counter)
 				new (tempContainer + counter) T(vecArray[counter]);
-			}
-			for (int i = 0; i < currentSize; ++i) {
+			for (int i = 0; i < currentSize; ++i)
 				vecArray[i].~T();
-			}
 			dAlloc.deallocate(vecArray, maxCapacity);
 			vecArray = tempContainer;
 			maxCapacity = newCap;
 		}
-		catch (...) {
+		catch (...)
 			Deallocate(tempContainer, counter, newCap);
-		}
 	}
 
 
 	void reserve(size_t n)
 	{
 		if (n > maxCapacity)
-		{
 			AllocateAndCopy(n);
-		}
 	}
 
 
 	void shrink_to_fit() // 20240320
 	{
 		if (maxCapacity > currentSize)
-		{
 			AllocateAndCopy(currentSize);
-		}
 	}
 
 	void resize(size_t n)
 	{
 		if (n > maxCapacity)
-		{
 			AllocateAndCopy(n);
-		}
 		if (n > currentSize)
-		{
-			for (; currentSize < n; ++currentSize) {
+			for (; currentSize < n; ++currentSize)
 				new (vecArray + currentSize) T(T{});
-			}
-		}
 		if (n < currentSize)
-		{
-			for (size_t i = n; i < currentSize; ++i) {
+			for (size_t i = n; i < currentSize; ++i)
 				vecArray[i].~T();
-			}
-		}
 		currentSize = n;
 	}
 
@@ -333,9 +294,7 @@ public:
 			for (size_t i = 0; i < lhs.currentSize; i++)
 			{
 				if (lhs.vecArray[i] != rhs.vecArray[i])
-				{
 					return false;
-				}
 			}
 			return true;
 		}
@@ -349,21 +308,15 @@ public:
 		return !(lhs == rhs);
 	}
 
-	// lhs = Abcdef, rhs = Abcdefg
+
 	friend bool operator<(const Vector& lhs, const Vector& rhs)
 	{
 		for (size_t i = 0; i < lhs.size() && i < rhs.size(); i++)
-		{
 			if (lhs.data()[i] != rhs.data()[i])
-			{
 				return lhs.data()[i] < rhs.data()[i];
-			}
-		}
 
 		if (lhs.size() < rhs.size())
-		{
 			return true;
-		}
 		return false;
 	}
 
@@ -464,9 +417,7 @@ public:
 	bool Invariant() const
 	{
 		if (currentSize <= maxCapacity)
-		{
 			return true;
-		}
 		return false;
 	}
 
@@ -478,12 +429,10 @@ public:
 		return cout;
 	}
 
-
 	void DeallocateVector(T* _array, size_t size)
 	{
-		for (size_t i = 0; i < size; ++i) {
+		for (size_t i = 0; i < size; ++i)
 			_array[i].~T();
-		}
 		dAlloc.deallocate(_array, size);
 	}
 
@@ -491,9 +440,8 @@ public:
 	{
 		if (vecArray != nullptr)
 		{
-			for (size_t i = 0; i < currentSize; ++i) {
+			for (size_t i = 0; i < currentSize; ++i)
 				vecArray[i].~T();
-			}
 			dAlloc.deallocate(vecArray, maxCapacity);
 		}
 		currentSize = 0;
